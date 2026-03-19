@@ -12,14 +12,14 @@ Change the address to 192.168.1.50 and netmask to 255.255.255.0
 ### install
 
 ```bash
-./setup.sh
+source setup.sh
 ```
 
 
 ## additional info
 
 ### folder tree
-
+```
 slam/  
 ├── src/  
 │   ├── drivers/  
@@ -27,10 +27,27 @@ slam/
 │   ├── slam/  
 │   │   └── FAST_LIO/            # Submodule (Code)  
 │   └── my_configs/              # YOUR custom ROS 2 Package  
+|       ...
 │       ├── config/  
-│       │   ├── custom_mid360.yaml  
-│       │   └── fast_lio_params.yaml  
+│       │   ├── mid360.yaml  
+│       │   └── MID360_config.yaml  
 │       └── launch/  
 │           └── fast_lio_deploy.launch.py  
 ├── setup.sh                     # The "Magic" script  
 └── README.md  
+```
+### detailled my config
+
+```
+my_configs/
+├── config/
+│   ├── mid360.yaml          # For Fast-LIO
+│   └── MID360_config.yaml   # For the Livox Driver
+├── launch/
+│   └── fast_lio_deploy.launch.py
+├── resource/
+│   └── my_configs           # An empty file with the package name inside
+├── package.xml
+├── setup.py
+└── setup.cfg
+```
