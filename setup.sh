@@ -82,3 +82,5 @@ echo "To start the system, run:"
 echo "source install/setup.bash"
 echo "ros2 launch my_configs fast_lio_deploy.launch.py"
 echo "********************************************************"
+
+source install/setup.bash 
