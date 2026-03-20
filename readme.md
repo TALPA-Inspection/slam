@@ -15,6 +15,17 @@ Change the address to 192.168.1.50 and netmask to 255.255.255.0
 source setup.sh
 ```
 
+To test succesful, no fatal errors should happen, and the following command should return a path:
+```bash
+ros2 pkg prefix my_configs
+```
+
+### launch
+
+```bash
+ros2 launch my_configs fast_lio_deploy.launch.py
+```
+
 
 ## additional info
 
