@@ -7,3 +7,12 @@
 [submodule "src/livox_ros_driver2"]
 	path = src/livox_ros_driver2
 	url = https://github.com/Livox-SDK/livox_ros_driver2.git
+[submodule "src/ublox"]
+	path = src/ublox
+	url = https://github.com/KumarRobotics/ublox.git
+	branch = ros2
+
+[submodule "src/ntrip_client"]
+	path = src/ntrip_client
+	url = https://github.com/LORD-MicroStrain/ntrip_client.git
+	branch = ros2
