@@ -9,6 +9,7 @@ def generate_launch_description():
     # 1. Paths to the OFFICIAL launch files
     my_configs_dir = get_package_share_directory('my_configs')
     fast_lio_dir = get_package_share_directory('fast_lio')
+    livox_driver_dir = get_package_share_directory('livox_ros_driver2')
 
     # 2. Path to ALL your custom config files
     fast_lio_config = os.path.join(my_configs_dir, 'config', 'mid360.yaml')
@@ -19,7 +20,7 @@ def generate_launch_description():
     # 3. Include the Livox Driver Launch with its config
     livox_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(my_configs_dir, 'launch', 'msg_MID360_launch.py')
+            os.path.join(livox_driver_dir, 'launch_ROS2', 'msg_MID360_launch.py')
         ),
         # Pass the driver config here
         launch_arguments={'user_config_path': livox_driver_config}.items()
@@ -51,6 +52,21 @@ def generate_launch_description():
         parameters=[ublox_gps_config]
     )
 
+    # 6. NTRIP Client Node (Corrections)
+    ntrip_node = Node(
+        package='ntrip_client',
+        executable='ntrip_client_node',
+        output='screen',
+        parameters=[ntrip_client_config]
+    )
+
+    # 5. GPS Node (U-Blox)
+    ublox_node = Node(
+        package='ublox_gps',
+        executable='ublox_gps_node',
+        output='screen',
+        parameters=[ublox_gps_config]
+    )
     # 6. NTRIP Client Node (Corrections)
     ntrip_node = Node(
         package='ntrip_client',

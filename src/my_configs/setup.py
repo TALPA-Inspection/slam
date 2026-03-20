@@ -13,7 +13,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         # This grabs everything in your launch folder
-        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
         # This grabs everything in your config folder
         (os.path.join('share', package_name, 'config'), glob('config/*')),
     ],
