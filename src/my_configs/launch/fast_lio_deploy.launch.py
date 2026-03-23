@@ -9,7 +9,6 @@ def generate_launch_description():
     # 1. Paths to the OFFICIAL launch files
     my_configs_dir = get_package_share_directory('my_configs')
     fast_lio_dir = get_package_share_directory('fast_lio')
-    livox_driver_dir = get_package_share_directory('livox_ros_driver2')
 
     # 2. Path to ALL your custom config files
     fast_lio_config = os.path.join(my_configs_dir, 'config', 'mid360.yaml')
@@ -17,12 +16,24 @@ def generate_launch_description():
     ublox_gps_config = os.path.join(my_configs_dir, 'config', 'zed_f9p.yaml')
    
     # 3. Include the Livox Driver Launch with its config
-    livox_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(livox_driver_dir, 'launch_ROS2', 'msg_MID360_launch.py')
-        ),
-        # Pass the driver config here
-        launch_arguments={'user_config_path': livox_driver_config}.items()
+
+    livox_params = {
+        "xfer_format": 1,
+        "multi_topic": 0,
+        "data_src": 0,
+        "publish_freq": 10.0,
+        "output_data_type": 0,
+        "frame_id": 'livox_frame',
+        "user_config_path": livox_driver_config,
+        "cmdline_input_bd_code": 'livox0000000001'
+    }
+
+    livox_driver_node = Node(
+        package='livox_ros_driver2',
+        executable='livox_ros_driver2_node',
+        name='livox_lidar_publisher',
+        output='screen',
+        parameters=[livox_params]
     )
 
     # 4. Include the Fast-LIO Mapping Launch with its config
@@ -59,7 +70,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        livox_launch,
+        livox_driver_node,
         fast_lio_launch,
         ublox_node,
         ntrip_launch,
