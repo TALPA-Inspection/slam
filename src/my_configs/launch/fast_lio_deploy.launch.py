@@ -3,118 +3,115 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, ExecuteProcess, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression
-from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition, UnlessCondition
 import time
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    # 0. Add a toggle so you can choose when to record
-    # Usage: ros2 launch my_configs fast_lio_deploy.launch.py record:=true
-    # Ensure the 'bags' directory exists so the recorder doesn't fail
+    # --- 0. ARGUMENTS & CONFIG ---
     if not os.path.exists('bags'):
         os.makedirs('bags')
-    record_bag_arg = DeclareLaunchArgument(
-        'record',
-        default_value='false',
-        description='Set to "true" to start recording a ROS bag.'
-    )
-    # Define the recording command
-    # We use a timestamp in the filename to avoid overwriting old data
-    bag_name = "bags/slam_run_" + time.strftime("%Y_%m_%d-%H_%M_%S")
 
+    record_bag_arg = DeclareLaunchArgument('record', default_value='false')
+    playback_arg = DeclareLaunchArgument('playback', default_value='false')
+    # Path to the bag you want to play back (only used if playback:=true)
+    bag_file_arg = DeclareLaunchArgument('bag_file', default_value='')
+
+    # Shortcuts for conditions and parameters
+    is_playback = LaunchConfiguration('playback')
+    is_recording = LaunchConfiguration('record')
+    # This ensures nodes use the bag's clock during playback
+    use_sim_time_param = {'use_sim_time': is_playback}
+
+    # --- 1. RECORDER & PLAYER ---
+    bag_name = "bags/slam_run_" + time.strftime("%Y_%m_%d-%H_%M_%S")
     bag_recorder = ExecuteProcess(
-        condition=IfCondition(LaunchConfiguration('record')),
-        cmd=[
-            'ros2', 'bag', 'record',
-            '-o', bag_name,
-            '/ublox_gps_node/fix',
-            '/odometry',
-            '/livox/lidar',
-            '/livox/imu',
-            '/keithley/measurement'
-            '/keithley/geotagged_marker'
-        ],
+        condition=IfCondition(is_recording),
+        cmd=['ros2', 'bag', 'record', '-o', bag_name,
+             '/ublox_gps_node/fix', '/odometry', '/livox/lidar',
+             '/livox/imu', '/keithley/measurement', '/keithley/geotagged_marker'],
         output='screen'
     )
 
-    # 1. Paths to the OFFICIAL launch files
+    bag_player = ExecuteProcess(
+        # --clock is essential so nodes see the bag's time
+        cmd=['ros2', 'bag', 'play', LaunchConfiguration('bag_file'), '--clock'],
+        condition=IfCondition(is_playback)
+    )
+
+    # --- 2. PATHS ---
     my_configs_dir = get_package_share_directory('my_configs')
     fast_lio_dir = get_package_share_directory('fast_lio')
-
-    # 2. Path to ALL your custom config files
     fast_lio_config = os.path.join(my_configs_dir, 'config', 'mid360.yaml')
-    livox_driver_config = os.path.join(my_configs_dir, 'config', 'MID360_config.json')
-    ublox_gps_config = os.path.join(my_configs_dir, 'config', 'zed_f9p.yaml')
-   
-    # 3. Include the Livox Driver Launch with its config
 
-    livox_params = {
-        "xfer_format": 1,
-        "multi_topic": 0,
-        "data_src": 0,
-        "publish_freq": 10.0,
-        "output_data_type": 0,
-        "frame_id": 'livox_frame',
-        "user_config_path": livox_driver_config,
-        "cmdline_input_bd_code": 'livox0000000001'
-    }
+    # --- 3. HARDWARE NODES (Muted during playback) ---
 
     livox_driver_node = Node(
         package='livox_ros_driver2',
         executable='livox_ros_driver2_node',
         name='livox_lidar_publisher',
-        output='screen',
-        parameters=[livox_params]
+        parameters=[{
+            "user_config_path": os.path.join(my_configs_dir, 'config', 'MID360_config.json'),
+            "xfer_format": 1, "publish_freq": 10.0, "frame_id": 'livox_frame'
+        }],
+        condition=UnlessCondition(is_playback),
+        output='screen'
     )
 
-    # 4. Include the Fast-LIO Mapping Launch with its config
+    ublox_node = Node(
+        package='ublox_gps',
+        executable='ublox_gps_node',
+        parameters=[os.path.join(my_configs_dir, 'config', 'zed_f9p.yaml')],
+        condition=UnlessCondition(is_playback),
+        output='screen'
+    )
+
+    keithley_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('keithley_dmm'), 'launch', 'keithley_yaml_launch.py')
+        ),
+        condition=UnlessCondition(is_playback)
+    )
+
+    ntrip_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(my_configs_dir, 'launch', 'ntrip_client_launch.py')
+        ),
+        condition=UnlessCondition(is_playback)
+    )
+
+    # --- 4. PROCESSING NODES (Always run, but use sim_time) ---
+
     fast_lio_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(fast_lio_dir, 'launch', 'mapping.launch.py')
         ),
-        launch_arguments={'config_file': fast_lio_config}.items()
-    )
-
-    # Path to Keithley Launch
-    keithley_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory('keithley_dmm'), 'launch', 'keithley_yaml_launch.py')
-        )
-    )
-
-    # Then add 'keithley_launch' to your LaunchDescription return list
-
-
-    # 5. GPS Node (U-Blox)
-    ublox_node = Node(
-        package='ublox_gps',
-        executable='ublox_gps_node',
-        output='screen',
-        parameters=[ublox_gps_config]
-    )
-
-    # NTRIP Client (Using its own internal defaults)
-    ntrip_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory('my_configs'), 'launch', 'ntrip_client_launch.py')
-        )
+        # Pass use_sim_time to the included launch file
+        launch_arguments={
+            'config_file': fast_lio_config,
+            'use_sim_time': is_playback
+        }.items()
     )
 
     geotagger_node = Node(
         package='my_configs',
         executable='measurement_geotagger',
         name='measurement_geotagger',
-        output='screen'
+        output='screen',
+        parameters=[use_sim_time_param] # Critical for sync during playback
     )
 
     return LaunchDescription([
         record_bag_arg,
+        playback_arg,
+        bag_file_arg,
         bag_recorder,
+        bag_player,
         livox_driver_node,
-        fast_lio_launch,
         ublox_node,
-        ntrip_launch,
         keithley_launch,
-        geotagger_node,
+        ntrip_launch,
+        fast_lio_launch,
+        geotagger_node
     ])
