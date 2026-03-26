@@ -25,11 +25,19 @@ def generate_launch_description():
     is_playback = LaunchConfiguration('playback')
     is_recording = LaunchConfiguration('record')
     # This ensures nodes use the bag's clock during playback
-    use_sim_time_param = {'use_sim_time': is_playback}   
-   
-    hostname = socket.gethostname()
-    is_laptop = "thinkpad" in hostname.lower()
-    is_jetson = "jetson" in hostname.lower()
+    use_sim_time_param: dict[str, LaunchConfiguration] = {'use_sim_time': is_playback}   
+
+    testing_mode: bool = True
+    is_laptop: bool
+    is_jetson: bool
+
+    if testing_mode:
+        is_laptop = True
+        is_jetson = True
+    else:
+        hostname: str = socket.gethostname()
+        is_laptop = "thinkpad" in hostname.lower()
+        is_jetson = "jetson" in hostname.lower()
 
     if not is_laptop and not is_jetson:
         print(f"ERROR! Couldnt resolve device type (laptop or jetson). Your hostname is {hostname}, change the main launch file so you are recognized as you need.")
@@ -40,7 +48,6 @@ def generate_launch_description():
         playback_arg,
         bag_file_arg,
     ]
-
 
     # --- 1. RECORDER & PLAYER ---
     bag_name = "bags/slam_run_" + time.strftime("%Y_%m_%d-%H_%M_%S")
@@ -114,7 +121,7 @@ def generate_launch_description():
         )
         entities.append(fast_lio_launch)
     
-    elif is_laptop:
+    if is_laptop:
             
         keithley_launch = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
