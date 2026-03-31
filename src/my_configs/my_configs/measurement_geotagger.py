@@ -29,7 +29,7 @@ class MeasurementGeotagger(Node):
         # --- LOAD PARAMETERS ---
         self.start_window = self.get_parameter('filter_start_sec').value
         self.end_window = self.get_parameter('filter_end_sec').value
-        self.step = self.get_parameter('measurement_step').value
+        self.step: int = self.get_parameter('measurement_step').value
         self.min_volt = self.get_parameter('min_volt').value
         self.max_volt = self.get_parameter('max_volt').value
 

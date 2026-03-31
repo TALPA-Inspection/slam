@@ -31,11 +31,11 @@ def generate_launch_description():
     is_laptop: bool
     is_jetson: bool
 
+    hostname: str = socket.gethostname()
     if testing_mode:
         is_laptop = True
         is_jetson = True
     else:
-        hostname: str = socket.gethostname()
         is_laptop = "thinkpad" in hostname.lower()
         is_jetson = "jetson" in hostname.lower()
 
