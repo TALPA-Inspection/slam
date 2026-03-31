@@ -116,7 +116,7 @@ def generate_launch_description():
             launch_arguments={
                 'config_file': fast_lio_config,
                 'use_sim_time': is_playback,
-                "rviz":"false",
+                "rviz":"false",  # false  # true
             }.items()
         )
         entities.append(fast_lio_launch)

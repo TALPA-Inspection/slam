@@ -41,6 +41,7 @@
 
     publish:
       # What should be sent to the visualizer (RViz)?
+      map_en: true
       path_en: true                # Show the line tracing where the robot walked
       scan_publish_en: true        # Show the current points the LiDAR sees
       dense_publish_en: false      # Save CPU by not showing every single tiny point
